@@ -1,0 +1,406 @@
+---
+title: "Assignment 1"
+output: html_notebook
+---
+This R Notebook provides a brief introduction to R Notebooks.
+
+# Problem 1
+1.  Explore the overall structure of the dataset using "str" and "summary functions.
+```{R}
+realtor <- read.csv("realtor.csv", stringsAsFactors = FALSE)
+str(realtor)
+```
+
+```{R}
+summary(realtor)
+names(realtor)
+```
+2. Find the type of each variable
+
+status : Categorical variable and nominal
+
+price: Numeric variable
+
+bed: Numeric variable
+
+bath: Numeric variable
+
+acre_lot: Numeric variable
+
+full_address: Categorical variable and nominal
+
+street: Categorical variable and nominal
+
+city: Categorical variable and nominal
+
+city: Categorical variable and nominal
+
+state: Categorical variable and nominal
+
+zip_code: Categorical variable and nominal
+
+house_size: Categorical variable and nominal
+
+sold_date: categorical and nominal
+
+
+
+3. Remove duplicate observations
+
+```{R}
+unique(realtor)
+
+```
+
+4. Check for missing values
+
+```{R}
+#Shows the variables with missing values.
+names(which(sapply(realtor, anyNA)))
+
+```
+
+5.  Use IQR method to remove outliers in "price" variable
+
+```{R}
+IQR <- IQR(realtor$price, na.rm = TRUE)
+IQR
+Q <- quantile(realtor$price, probs=c(.25, .75), na.rm = TRUE)
+Q
+left <- 269000 - 1.5*IQR
+right <- 839900 + 1.5*IQR
+left
+right
+price <- realtor$price
+price_no_outliers <- subset(price,price > left & price < right)
+price_no_outliers
+
+```
+
+6/7. Remove all houses with prices less than or equal to 50k and draw histogram and boxplot.
+
+
+```{R}
+new_price <- subset(price_no_outliers, price_no_outliers >= 50000)
+summary(new_price)
+new_price_IQR <- IQR(new_price)
+new_left <- 260000 - 1.5*new_price_IQR
+new_right <- 699900 + 1.5*new_price_IQR
+new_price <- subset(new_price, new_price > new_left & new_price < new_right)
+boxplot(new_price, main="Prices of Realtors over $50K and Outliers Removed", ylim= c(50000,1696250), ylab="Price ($)")
+hist(new_price, main="Prices of Realtors over $50k and Outliers Removed", xlab="Price ($)")
+
+```
+
+7.5 : Based on the boxplot and histogram, the price is positively skewed.
+
+8. Percent of missing for price variable
+
+```{R}
+sum(is.na(realtor$price))
+percent_missing <- 71/length(new_price) * 100
+percent_missing
+```
+9. Convert sold_date from character string to date/time, then create 2 attributes to store year and month.
+
+```{R}
+date_format <- as.Date(realtor$sold_date, format = "%Y -%m -%d")
+class(date_format)
+sold_year <- as.Date(date_format, "%Y")
+sold_month <- as.Date(date_format, "%m")
+```
+
+10/11. Convert "state" attribute to factor and take summary. Remove States with only one observation. Find if there is a statistical significant difference between average house price for different states.
+
+Based on the boxplot, I beleive that there is a statistically significant difference between the average house price for different states. Using the one-way ANOVA test did not yield a p-value.
+```{R}
+new_realtor <- subset(realtor, realtor$price >= 50000)
+new_realtor_no_outliers <- subset(new_realtor, new_realtor$price > new_left & new_realtor$price < new_right)
+state <- factor(new_realtor_no_outliers$state)
+summary(state)
+boxplot(new_realtor_no_outliers$price~state, main="House Price vs States", xlab="States", ylab="Price ($)")
+oneway.test(new_price~state)
+
+```
+
+12: Find the correlation between house_price and variables sold_year, house_size, bed, and bath.
+
+```{R}
+
+attributes <- realtor[c("house_size", "bed", "bath")]
+sold_year <- as.numeric(sold_year)
+class(attributes)
+#correlation between house_size, bed, and bath to house_price
+cor(realtor$price, attributes, use ="pairwise.complete.obs", method='spearman')
+#correlation between house price and sold_year
+cor(realtor$price, sold_year, use ="pairwise.complete.obs", method = "spearman")
+
+```
+# Problem 2
+
+13: Explore overall structure of dataset using "str" and "summary.
+
+```{R}
+airline <- read.csv("airline_satisfaction.csv", stringsAsFactors = FALSE)
+str(airline)
+summary(airline)
+
+```
+
+
+
+14.What is the type of each variable categorical/discrete or numeric/continuous? For
+categorical/discrete variables, specify whether it is nominal or ordinal.
+
+X : Numerical
+
+id: Numerical
+
+Gender: Categorical, and nominal
+
+Customer.Type: Categorical, and nominal
+
+Age: Numerical
+
+Type.of.Travel: Categorical, and nominal
+
+Class: Categorical, and nominal
+
+Flight.Distance: Numerical
+
+Inflight.wifi.service: Numerical
+
+Departure.Arrival.time.convenient: Numerical
+
+Ease.of.Online.booking: Numerical
+
+Gate.location: Numerical
+
+Food.and.drink: Numerical
+
+Online.boarding: Numerical
+
+Seat.comfort: Numerical
+
+Inflight.entertainment: Numerical
+
+On.board.service: Numerical
+
+Leg.room.service: Numerical
+
+Baggage.handling: Numerical
+
+Checkin.service: Numerical
+
+Inflight.service: Numerical
+
+Cleanliness: Numerical
+
+Departure.Delay.in.Minutes: Numerical
+
+Arrival.Delay.in.Minutes: Numerical
+
+satisfaction: Categorical, and Nominal
+
+
+15. Does any of the variables have missing values? Which ones?
+```{R}
+names(which(sapply(airline, anyNA)))
+
+```
+
+
+16: Remove the “id” and “X” variables
+
+```{R}
+airline = subset(airline, select =-c(id,X))
+summary(airline)
+```
+
+
+17: Is there an association between “satisfaction” and any of the other attributes in the dataset? Use
+appropriate plots and statistic tests to answer this question.
+
+```{R}
+library(gmodels)
+sat_Gender_table <- table(airline$Gender,airline$satisfaction)
+chisq.test(sat_Gender_table)
+mosaicplot(sat_Gender_table, ylab="Satisfaction", xlab="Gender", main ="Mosaic Graph of Gender vs Satisfaction", shade =TRUE)
+
+
+
+```
+Using a Chi-square test and mosaic plot between satisfaction and Gender and having a very low p-value indicates an association between satisfaction and gender.
+
+```{R}
+sat_cust_table <- table(airline$Customer.Type, airline$satisfaction)
+chisq.test(sat_cust_table)
+mosaicplot(sat_cust_table, ylab="Satisfaction", xlab="Customer Type", main ="Mosaic Graph of Customer Type vs Satisfaction", shade =TRUE)
+```
+
+Using a Chi-square test and mosaic plot between satisfaction and customer type, there appears to be an association between the two.
+
+```{R}
+boxplot(Age~satisfaction, main="Age vs Satisfaction", xlab="Satisfaction", ylab="Age", col="red")
+oneway.test(Age~satisfaction, data = airline)
+
+```
+Using a Side by Side Boxplot and one-way test, we see that there is an association between Age and satisfaction.
+
+```{R}
+sat_Travel_Table <- table(airline$Type.of.Travel, airline$satisfaction)
+chisq.test(sat_Travel_Table)
+mosaicplot(sat_Travel_Table, ylab="Satisfaction", xlab="Type of Travel", main="Mosaic Graph of Type of Travel Vs Satisfaction", shade = TRUE)
+
+```
+Given the Chi-square test and mosaic plot, there appears to be an association with type of travel and satisfaction.
+
+```{R}
+sat_Class_table <- table(airline$Class, airline$satisfaction)
+chisq.test(sat_Class_table)
+mosaicplot(sat_Class_table, ylab="Satisfaction", xlab="Class", main="Mosaic Graph of Class Vs Satisfaction", shade =TRUE)
+
+```
+
+Using chi-square and mosaic plot, there appears to be an association with class and satisfaction.
+
+```{R}
+boxplot(Flight.Distance~satisfaction, main="Flight Distance vs Satisfaction", xlab="Satisfaction", ylab="Flight Distance", col="red")
+t.test(Flight.Distance~satisfaction)
+
+```
+Using side by side boxplots and t-test, there appears to be an association with flight distance and satisfaction
+
+
+
+```{R}
+boxplot(Inflight.wifi.service~satisfaction, main="Inflight Wifi Service Vs Satisfaction", xlab="Satisfaction", ylab="Inflight wifi service", col="red")
+t.test(Inflight.wifi.service~satisfaction)
+```
+Using side by side boxplots and t-test, there appears to ba an association with inflight wifi service and satisfaction.
+
+```{R}
+boxplot(Departure.Arrival.time.convenient~satisfaction, main="Departure Arrival time convenient vs Satisfaction", xlab="Satisfaction", ylab="Departure Arrival time convenient", col="red")
+t.test(Departure.Arrival.time.convenient~satisfaction)
+
+```
+Using side by side boxplot and t-test, there appears to be an association with Departure Arrival time convenient and satisfaction.
+
+```{R}
+boxplot(Ease.of.Online.booking~satisfaction, main="Ease of Online Booking vs Satisfaction", xlab="Satisfaction", ylab = "Ease of Online Booking", col="red")
+t.test(Ease.of.Online.booking~satisfaction)
+
+```
+Based on the side by side boxplot and t-test, there appears to be an association with ease of online booking and satisfaction.
+
+
+```{R}
+boxplot(Gate.location~satisfaction, main="Gate location vs Satisfaction", xlab="Satisfaction", ylab="Gate location", col="red")
+t.test(Gate.location~satisfaction)
+
+```
+Based on the t-test and side by side boxplot, there seems to not be an association with gate location and satisfaction.
+
+```{R}
+
+boxplot(Food.and.drink~satisfaction, main="Food and Drink vs Satisfaction", xlab="Satisfaction", ylab = "Food and Drink", col="red")
+t.test(Food.and.drink~satisfaction)
+
+```
+
+Based on the side by side boxlplots and t-test, there appears to be an association with food and drink and satisfaction.
+
+```{R}
+boxplot(Online.boarding~satisfaction, main="Online Boarding vs Satisfaction", xlab="Satisfaction", ylab = "Online Boarding", col="red")
+t.test(Online.boarding~satisfaction)
+
+```
+
+Based on the side by side boxplots and t-test, there appears to be an association with online boarding and satisfaction.
+
+
+
+```{R}
+boxplot(Seat.comfort~satisfaction, main="Seat comfort vs Satisfaction", xlab="Satisfaction", ylab = "Seat Comfort", col="red")
+t.test(Seat.comfort~satisfaction)
+```
+Based on the Side by side boxplots and t-test, there appears to be an association with seat comfort and satisfaction.
+
+
+```{R}
+boxplot(Inflight.entertainment~satisfaction, main="Inflight Entertainment vs Satisfaction", xlab="Satisfaction", ylab = "Inflight Entertainment", col="red")
+t.test(Inflight.entertainment~satisfaction)
+
+```
+From the side by side boxplots and t-test, there appears to be an association with inflight entertainment and satisfaction.
+
+```{R}
+boxplot(On.board.service~satisfaction, main="Onboard service vs Satisfaction", xlab="Satisfaction", ylab = "Onboard service", col="red")
+t.test(On.board.service~satisfaction)
+```
+Side by side boxplots and t-test show an association with onboard service and satisfaction.
+
+
+```{R}
+boxplot(Leg.room.service~satisfaction, main="Leg Room service vs Satisfaction", xlab="Satisfaction", ylab = "Leg Room Service", col="red")
+t.test(Leg.room.service~satisfaction)
+```
+Side by side boxplots and t-test show an association with leg room service and satisfaction.
+
+```{R}
+boxplot(Baggage.handling~satisfaction, main="Baggage Handling vs Satisfaction", xlab="Satisfaction", ylab = "Baggage Handling", col="red")
+t.test(Baggage.handling~satisfaction)
+```
+Side by side boxplots and t-test show an association with baggage handling and satisfaction.
+
+```{R}
+boxplot(Checkin.service~satisfaction, main="Checkin Service vs Satisfaction", xlab="Satisfaction", ylab = "Checkin Service", col="red")
+t.test(Checkin.service~satisfaction)
+```
+Side by side boxplots and t-test show an association with checkin service and satisfaction.
+
+```{R}
+boxplot(Inflight.service~satisfaction, main="Inflight Service vs Satisfaction", xlab="Satisfaction", ylab = "Inflight Service", col="red")
+t.test(Inflight.service~satisfaction)
+```
+Side by side boxplots and t-test show an association with inflight service and satisfaction.
+
+```{R}
+boxplot(Cleanliness~satisfaction, main="Cleanliness vs Satisfaction", xlab="Satisfaction", ylab = "Cleanliness", col="red")
+t.test(Cleanliness~satisfaction)
+```
+
+Side by side boxplots and t-test show an association with cleanliness and satisfaction.
+
+
+```{R}
+boxplot(Departure.Delay.in.Minutes~satisfaction, main="Departure Delay vs Satisfaction", xlab="Satisfaction", ylab = "In Minutes", col="red")
+t.test(Departure.Delay.in.Minutes~satisfaction)
+```
+Side by side boxplot is harder to see, but using the t-test, we see an association with Departure Delay in minutes and satisfaction.
+
+```{R}
+boxplot(Arrival.Delay.in.Minutes~satisfaction, main="Arrival Delay vs Satisfaction", xlab="Satisfaction", ylab = "In Minutes", col="red")
+t.test(Arrival.Delay.in.Minutes~satisfaction)
+
+```
+While it is difficult to see the side by side boxplot, using the t-test we see an association with arrival delay in minutes and satisfaction.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

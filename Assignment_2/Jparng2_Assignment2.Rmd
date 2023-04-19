@@ -1,0 +1,567 @@
+---
+title: "Assignment 2"
+output: html_notebook
+---
+
+Data Exploration
+
+1. Download the dataset and store in a dataframe.
+
+```{R}
+bank <- read.csv("bank-full.csv", sep = ";", stringsAsFactors = FALSE, na.strings = "unknown")
+
+
+```
+
+
+2. Explore overall structure of the dataset using str(). Get a summary of statistics and then explain what each type of variable.
+
+```{R}
+str(bank)
+summary(bank)
+
+```
+
+age: Continuous
+
+job: Categorical (unordered)
+
+marital: Categorical (unordered)
+
+education: Categorical (ordered)
+
+default: Categorical (unordered)
+
+balance: Continuous
+
+housing: Categorical (unordered)
+
+loan: Categorical (unordered)
+
+contact: Categorical (unordered)
+
+day: Continuous
+
+month: Categorical (ordered)
+
+duration: Continuous
+
+campaign: Continuous
+
+pdays: Continuous
+
+previous: Continuous
+
+poutcome: Categorical (unordered)
+
+y: Categorical (unordered)
+
+
+
+3. Get frequency table of the target variable "y". Is y balanced? 
+
+```{R}
+bank_y <- factor(bank$y)
+table(bank_y)
+
+```
+From the frequency table, it seems that y is not balanced.
+
+
+4. Explore the data in order to investigate the association between the target variable y and other variables in the dataset. 
+
+```{R}
+attach(bank)
+boxplot(age~y, col ="red")
+oneway.test(age~y, data =bank)
+```
+There appears to be an association with age and y.
+
+
+```{R}
+job_table <- table(bank$job,bank$y)
+mosaicplot(job_table, ylab = "job", xlab ="y or n", main ="Mosaic graph of job vs y or n", shade=TRUE)
+chisq.test(job_table)
+
+```
+There appears to be an association between job and y.
+
+
+```{R}
+marital_table <- table(bank$marital, bank$y)
+mosaicplot(marital_table, ylab ="marital status", xlab ="y or n", main ="Mosiac graph of marital status vs y or n", shade=TRUE)
+chisq.test(marital_table)
+
+
+```
+
+There appears to be an association with y and marital.
+
+
+```{R}
+edu_table <- table(bank$education, bank$y)
+mosaicplot(edu_table, ylab ="Education", xlab ="y or n", main ="Mosiac graph of education vs y or n", shade=TRUE)
+chisq.test(edu_table)
+
+
+```
+
+There appears to be an association between education and y.
+
+
+```{R}
+default_table <- table(bank$default, bank$y)
+mosaicplot(default_table, ylab ="Default", xlab ="y or n", main ="Mosiac graph of default vs y or n", shade=TRUE)
+chisq.test(default_table)
+
+```
+There appears to be an association with default and y
+
+
+```{R}
+boxplot(balance~y, col ="red")
+oneway.test(balance~y, data = bank)
+
+```
+There appears to be an association with balance and y.
+
+
+```{R}
+housing_table <- table(bank$housing, bank$y)
+mosaicplot(housing_table, ylab ="housing", xlab ="y or n", main ="Mosiac graph of housing vs y or n", shade=TRUE)
+chisq.test(housing_table)
+
+```
+There appears to be an association with housing and y.
+
+
+```{R}
+loan_table <- table(bank$loan, bank$y)
+mosaicplot(loan_table, ylab ="Loan", xlab ="y or n", main ="Mosiac graph of loan vs y or n", shade=TRUE)
+chisq.test(loan_table)
+
+
+
+```
+
+There appears to be an association with loan and y.
+
+
+```{R}
+contact_table <- table(bank$contact, bank$y)
+mosaicplot(contact_table, ylab ="Contact", xlab ="y or n", main ="Mosiac graph of contact vs y or n", shade=TRUE)
+chisq.test(contact_table)
+
+
+
+```
+There appears to be an association with contact and y.
+
+
+```{R}
+boxplot(day~y, col="red")
+oneway.test(day~y, data =bank)
+
+
+```
+
+There appears to be an association with day and y.
+
+
+
+```{R}
+month_table <- table(bank$month, bank$y)
+mosaicplot(month_table, ylab ="Month", xlab ="y or n", main ="Mosiac graph of month vs y or n", shade=TRUE)
+chisq.test(month_table)
+
+
+```
+There appears to be an association with month and y.
+
+```{R}
+boxplot(duration~y, col="red")
+oneway.test(duration~y, data = bank)
+
+
+```
+
+There appears to be an association with duration and y.
+
+
+
+```{R}
+boxplot(campaign~y, col="red")
+oneway.test(campaign~y)
+
+
+```
+There appears to be an association with campaign and y.
+
+
+```{R}
+boxplot(pdays~y, col="red")
+oneway.test(pdays~y, data = bank)
+
+
+```
+There appears to be an association with pdays and y.
+
+
+```{R}
+boxplot(previous~y, col="red")
+oneway.test(previous~y, data =bank)
+
+
+```
+There appears to be an asssociation with previous and y.
+
+
+
+```{R}
+pout_table <- table(bank$poutcome,bank$y)
+mosaicplot(pout_table, ylab ="poutcome", xlab ="y or n", main ="Mosiac graph of poutcome vs y or n", shade=TRUE)
+chisq.test(pout_table)
+
+
+
+
+```
+There appears to be an association with poutcome and y.
+
+
+
+
+
+
+
+5. 
+
+```{R}
+colSums(is.na(bank))
+
+```
+Job, education, contact, and poutcome have missing values.
+
+
+
+
+
+6.
+
+```{R}
+calc_mode <- function(x){
+  unique_val <- na.omit(unique(x))
+  unique_tab <- tabulate(match(x, unique_val))
+  unique_val[which.max(unique_tab)]
+}
+
+bank$job[is.na(bank$job)] <- calc_mode(bank$job)
+bank$education[is.na(bank$education)] <- calc_mode(bank$education)
+bank$contact[is.na(bank$contact)] <- calc_mode(bank$contact)
+bank$poutcome[is.na(bank$poutcome)] <- calc_mode(bank$poutcome)
+colSums(is.na(bank))
+
+```
+
+
+7. Set seed of random number generator to fixed integer
+
+8. Randomize the order of the rows
+
+
+```{R}
+set.seed(1)
+shuffle_bank <- bank[sample(nrow(bank), replace =FALSE),]
+str(shuffle_bank)
+shuffle_bank$month <- c(jan = 1, feb = 2,mar = 3, apr = 4, may = 5, jun = 6, jul = 7, aug = 8, sep = 9, oct = 10, nov = 11, dec = 12)[shuffle_bank$month]
+shuffle_bank$education <- c(primary = 1, secondary = 2, tertiary = 3)[shuffle_bank$education]
+
+```
+
+9. One-hot encoding
+
+
+```{R}
+library(data.table)
+bank_dt <- as.data.table(shuffle_bank)
+class(bank_dt)
+bank_dt$job <- factor(bank_dt$job)
+bank_dt$marital <- factor(bank_dt$marital)
+bank_dt$default <- factor(bank_dt$default)
+bank_dt$housing <- factor(bank_dt$housing)
+bank_dt$loan <- factor(bank_dt$loan)
+bank_dt$contact <- factor(bank_dt$contact)
+bank_dt$poutcome <- factor(bank_dt$poutcome)
+bank_one_hot <-one_hot(bank_dt, cols = c("job","marital","default","housing","loan","contact","poutcome"), sparsifyNAs = FALSE, naCols =FALSE, dropCols =TRUE, dropUnusedLevels = TRUE)
+bank_one_hot
+
+```
+```{R}
+#convert data table back to data frame
+bank_frame <- as.data.frame(bank_one_hot, row.names =NULL, optional = FALSE)
+class(bank_frame)
+#bank_frame_n <-bank_frame[1:34]
+
+```
+
+10. Split data to training and test sets with the first 36168 rows for training and the rest for testing.
+
+
+```{R}
+bank_train <- bank_frame[1:36168, ]
+bank_test <- bank_frame[36169:45211, ]
+bank_train_labels <- bank_frame[1:36168, 35]
+bank_test_labels <- bank_frame[36169:45211, 35]
+
+#one_hot_frame = subset(bank_one_hot, select= -c(age,balance,day,duration,campaign,pdays,previous))
+bank_train
+bank_test
+
+```
+
+11. Scale all numeric features with z-score normalization (exclude one-hot encoded variables)
+
+```{R}
+
+bank_train$age = scale(bank_train$age)
+bank_train$balance = scale(bank_train$balance)
+bank_train$day = scale(bank_train$day)
+bank_train$duration = scale(bank_train$duration)
+bank_train$campaign = scale(bank_train$campaign)
+bank_train$pdays = scale(bank_train$pdays)
+bank_train$previous = scale(bank_train$previous)
+
+
+  
+bank_test$age = scale(bank_test$age)
+bank_test$balance = scale(bank_test$balance)
+bank_test$day = scale(bank_test$day)
+bank_test$duration = scale(bank_test$duration)
+bank_test$campaign = scale(bank_test$campaign)
+bank_test$pdays = scale(bank_test$pdays)
+bank_test$previous = scale(bank_test$previous)
+
+bank_train_n <- bank_train[1:34]
+bank_test_n <- bank_test[1:34]
+
+```
+
+
+
+12. use 5-fold cross validation with KNN on Training set to predict y variable and report accuracy of cross-validation
+
+```{R}
+library(caret)
+library(class)
+crossValidationError = function(features,target,k){
+  folds=createFolds(target,k=5)
+  errors=sapply(folds,knn_fold,features=features,target=target,k=k)
+  return(mean(errors))
+}
+knn_fold = function(features,target,fold,k){
+  train = features[-fold,]
+  validation = features[fold,]
+  train_labels = target[-fold]
+  validation_labels = target[fold]
+  validation_preds = knn(train,validation,train_labels,k=k)
+  t = table(validation_labels,validation_preds)
+  error = (t[1,2]+t[2,1])/(t[1,1]+t[1,2]+t[2,1]+t[2,2])
+  return(error)
+}
+
+
+crossError <- crossValidationError(bank_train_n,bank_train$y,5)
+1 - crossError
+
+```
+The accuracy is .89.
+
+
+
+13. Tune K with diff values, draw a plot of cross validation accuracy for different values of K.
+
+
+```{R}
+
+ks = c(1,4,10,15,20,50)
+errors = sapply(ks, crossValidationError, features = bank_train_n, target = bank_train$y)
+plot(errors~ks, main ="Cross validation Error Vs K", xlab = "k", ylab="CVError")
+lines(errors~ks)
+
+```
+It appears that K = 15 seems to perform the best on the training set.
+
+
+
+
+14. Use the Knn function to train a knn model on the training set using the K value found above and get the predicted values for target variable y in the test set. 
+
+
+
+```{R}
+bank_test_pred <-knn(bank_train_n, bank_test_n,bank_train_labels, k = 15)
+summary(bank_test_pred)
+
+```
+
+
+15. Compare the predicted target with the true target in the test set using a cross table.
+
+
+```{R}
+library(gmodels)
+
+CrossTable(x = bank_test_labels, y = bank_test_pred, prop.chisq = FALSE)
+
+
+
+```
+16.  The rows of the cross table so the true labels, and the columns so the predicted labels.
+    The first percentage row shows the percentage of values that were predicted correctly. In this case, 7813 "no"s were predicted correctly (~98%) while 188 "no"s were not predicted correctly (~2%).
+In this case, the False Positive Rate would be around 2%. 735 true "yes"s were predicted incorrectly (70.5%) while 307 true "yes"s were predicted correctly (~29.5%), and in this case the False Negative rate would be 70.5%.
+
+
+
+17. From the test set, the accuracy that the the prediction for y="no" from the test set would be (88%) based on 8001/ 9043 (The total amount of "no"s over the test set). In this case, KNN does a better job than the majority classifier for predicting the "no"s in the test set.
+
+
+
+18.  The False Positive Rate would be 0% while the False Negative rate would be ~12% due to the majority classifier predicting only y="no" for all observations. Based on the KNN model from number 16, the FPR and FNR would be better with the majority classifier.
+
+
+Problem 2
+
+1. Read the data and store in a data frame.set fileEncoding = "latin1" inside the read.csv method.
+
+```{R}
+corona <- read.csv("Corona_NLP_train.csv", fileEncoding = "latin1")
+str(corona)
+
+```
+
+
+```{R}
+summary(corona)
+
+```
+
+2. Randomize order of the rows
+
+```{R}
+set.seed(1)
+shuffle_corona <- corona[sample(nrow(corona), replace = FALSE),]
+str(shuffle_corona)
+
+```
+
+
+
+3. Convert sentiment into a factor variable with 3 levels :positive, neutral, and negative.
+
+```{R}
+
+shuffle_corona$Sentiment <- factor(shuffle_corona$Sentiment)
+levels(shuffle_corona$Sentiment)[levels(shuffle_corona$Sentiment) == "Extremely Negative"] <- "Negative"
+levels(shuffle_corona$Sentiment)[levels(shuffle_corona$Sentiment) == "Extremely Positive"] <- "Positive"
+shuffle_corona$Sentiment
+```
+
+
+4. Create a text corpus from OriginalTweet variable, then clean the corpus.
+
+
+```{R}
+library(tm)
+library(SnowballC)
+corona_corpus <- VCorpus(VectorSource(shuffle_corona$OriginalTweet))
+corona_corpus_clean <- tm_map(corona_corpus, content_transformer(tolower))
+corona_corpus_clean <- tm_map(corona_corpus_clean, removeWords, stopwords())
+
+replacePunctuation <- function(x) {
+  gsub("[[:punct:]]+", " ", x)
+}
+corona_corpus_clean <- tm_map(corona_corpus_clean, replacePunctuation)
+corona_corpus_clean <- tm_map(corona_corpus_clean, stemDocument)
+corona_corpus_clean <- tm_map(corona_corpus_clean, stripWhitespace)
+
+
+```
+
+5. Create separate wordclouds for positive and negative tweets.
+
+```{R}
+library(wordcloud)
+positive_wc <- subset(shuffle_corona, shuffle_corona$Sentiment == "Positive")
+negative_wc <- subset(shuffle_corona, shuffle_corona$Sentiment == "Negative")
+wordcloud(positive_wc$OriginalTweet, max.words = 100, scale = c(3, 0.5))
+wordcloud(negative_wc$OriginalTweet, max.words = 100, scale = c(3, 0.5))
+```
+There does not appear to be a visible difference between the frequent words for "positive" or "negative" tweets.
+
+
+6. Create a document-term matrix from the cleaned corpus, then split the data into train and test sets. Use 80% for training and the rest for testing.
+
+
+```{R}
+corona_dtm <- DocumentTermMatrix(corona_corpus, control = list(
+  tolower = TRUE,
+  removeNumbers = TRUE,
+  stopwords = TRUE,
+  removePunctuation = TRUE,
+  stemming = TRUE
+))
+
+
+
+```
+
+```{R}
+corona_dtm_train <- corona_dtm[1:32925,]
+corona_dtm_test <- corona_dtm[32926:41157,]
+
+corona_train_labels <- shuffle_corona[1:32925,]$Sentiment
+corona_test_labels <- shuffle_corona[32926:41157,]$Sentiment
+
+```
+
+7. Remove words that appear less than 50 times in the training data. Convert frequencies in the DTM to binary yes/no features.
+
+
+```{R}
+corona_freq_words <- findFreqTerms(corona_dtm_train, 50)
+corona_dtm_freq_train <- corona_dtm_train[, corona_freq_words]
+corona_dtm_freq_test <- corona_dtm_test[, corona_freq_words]
+
+convert_counts <- function(x) {
+  x <- ifelse(x > 0, "Yes", "No")
+}
+corona_train <- apply(corona_dtm_freq_train, MARGIN = 2, convert_counts)
+corona_test <- apply(corona_dtm_freq_test, MARGIN = 2, convert_counts )
+
+```
+
+8. Train a Naive Bayes classifier on the training data and evaluate its performance on the test data. use a cross table between the model's prediction on the test data and the true test labels.
+
+```{R}
+library(e1071)
+corona_classifier <- naiveBayes(corona_train, corona_train_labels)
+corona_test_pred <- predict(corona_classifier, corona_test)
+library(gmodels)
+CrossTable(corona_test_pred, corona_test_labels, prop.chisq = FALSE, prop.t = FALSE, dnn = c('predicted','actual'))
+
+```
+
+Overall accuracy would be 5683/ 8232 = 69%.
+
+Precision = TP/(TP+FP) recall= TP/(TP+FN)
+
+Negative : Precision = 2044/ (2044 + 627 + 410) = .663 , Recall = 2044 / (2044 +607 + 214) = .713
+
+Positive : Precision =  2576 / (2576 + 607 + 412) = .717  , Recall = 2576 / (2576 + 627 + 279 )= .740
+
+Neutral : Precision = 1063 / (1063 + 214 + 279) = .683  , Recall = 1063 / (1063 + 410 + 412) = .564
+
+
+
+
+

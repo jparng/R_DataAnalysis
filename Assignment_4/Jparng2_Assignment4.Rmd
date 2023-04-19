@@ -1,0 +1,601 @@
+---
+title: "Assignment 4"
+output: html_notebook
+---
+
+
+
+```{r}
+covid <- read.csv("Corona_NLP_train.csv")
+
+```
+
+```{R}
+library(qdap)
+covid$OriginalTweet = rm_stopwords(covid$OriginalTweet, stopwords = tm::stopwords("english"), separate = FALSE, strip = TRUE)
+covid$OriginalTweet = stemmer(covid$OriginalTweet, warn = FALSE)
+
+```
+
+2. Randomize order of rows, use same seed.
+
+```{R}
+set.seed(1)
+shuffle_covid <- covid[sample(nrow(covid), replace = FALSE),]
+str(covid)
+
+```
+
+3. Convert sentiment into a factor variable with 3 levels: positive, negative, and neutral. Then convert factor variable into a numeric vector.
+
+
+```{R}
+shuffle_covid$Sentiment <- factor(shuffle_covid$Sentiment)
+levels(shuffle_covid$Sentiment)[levels(shuffle_covid$Sentiment) == "Extremely Negative"] <- "Negative"
+levels(shuffle_covid$Sentiment)[levels(shuffle_covid$Sentiment) == "Extremely Positive"] <- "Positive"
+shuffle_covid$Sentiment <-as.numeric(shuffle_covid[,"Sentiment"])-1
+
+
+```
+
+
+4. Split the data in to train/validation/test as follows : first 26340 rows for training, 6585 rows for validation, and 8232 rows for testing.
+
+
+```{R}
+covid_train <- shuffle_covid[1:26340,]
+covid_valid <- shuffle_covid[26340:32925,]
+covid_test <- shuffle_covid[32926:41157,]
+
+
+```
+
+
+5. Use the following code segment to create document-term matrix for training, validation, and test datasets.
+
+
+```{R}
+library(keras)
+text_vectorizer <- layer_text_vectorization(output_mode = "tf_idf", ngrams = 2, max_tokens = 5000)
+text_vectorizer %>% adapt(covid_train$OriginalTweet)
+
+covid_train_dtm = text_vectorizer(covid_train$OriginalTweet)
+covid_valid_dtm = text_vectorizer(covid_valid$OriginalTweet)
+covid_test_dtm = text_vectorizer(covid_test$OriginalTweet)
+
+
+```
+
+Q1. Create an ANN model with 2 hidden layers to classify tweets into 3 classes.
+
+```{R}
+model = keras_model_sequential()
+
+model %>%
+  layer_dense(units = 40, activation = "relu", input_shape = 5000) %>%
+  layer_dense(units = 20, activation = "relu") %>%
+  layer_dense(units = 3, activation = "softmax")
+
+model %>% compile(
+  optimizer = 'adam',
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('accuracy')
+)
+
+set.seed(1)
+
+
+model %>% fit(
+  covid_train_dtm,covid_train$Sentiment, epochs = 30, batch_size = 100, validation_data = list(covid_valid_dtm,covid_valid$Sentiment)
+)
+
+```
+
+
+```{R}
+library(gmodels)
+predicted_labels = as.numeric(model %>% predict(covid_test_dtm) %>% k_argmax())
+CrossTable(predicted_labels,covid_test$Sentiment, prop.chisq = FALSE, prop.t = FALSE, dnn = c('predicted','actual'))
+
+```
+
+
+From the table, the model had a total of 2203 mistakes, with a total error rate of 26%. For '0', the model had predicted 73.1% correctly, '1' had 75.6%, and '2' had 66.2%.
+
+
+
+
+Q2 Use "tfruns" package to tune ANN's hyper-parametesr including number of nodes in each layer, batch_size, and learning_rate. Validate each model on the validation set.
+
+```{R}
+library(tfruns)
+
+
+
+runs <- tuning_run("Corona_NLP_train.R",
+                   flags = list(
+                     nodes = c(64, 128, 392),
+                     learning_rate = c(0.01, 0.05, 0.001, 0.0001),
+                     batch_size= c(100, 200, 500, 1000),
+                     epochs = c(30,50,100),
+                     activation = c("relu", "sigmoid", "tanh")
+                   ),
+                   sample = 0.02
+)
+
+
+
+```
+```{R}
+runs
+
+view_run(runs$run_dir[2])
+```
+1. Run number 2 with a validation accuracy of 73.5% was the model that resulted in the best accuracy on the validation data.
+
+
+2. The best model overfits by a lot because the validation error is much higher than the training error.
+
+3. The validation_loss seems to be steadily increasing and then decreases at around 24 epochs before steadily increasing again.
+
+
+
+
+
+Q3. Add the validation data to the train data. 
+
+
+```{R}
+covid_train_dtm_matrix <- as.matrix(covid_train_dtm)
+covid_valid_dtm_matrix <- as.matrix(covid_valid_dtm)
+
+covid_matrix <- rbind(covid_train_dtm_matrix, covid_valid_dtm_matrix)
+covid_combined <- rbind(covid_train, covid_valid)
+
+
+
+```
+
+
+
+
+
+```{R}
+model = keras_model_sequential()
+
+model %>%
+  layer_dense(units = 64, activation = "tanh", input_shape = 5000) %>%
+  layer_dense(units = 64, activation = "tanh") %>%
+  layer_dense(units = 3, activation = "softmax")
+
+model %>% compile(
+  optimizer = optimizer_adam(lr = 0.01),
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('accuracy')
+)
+
+
+
+model %>% fit(
+  covid_matrix,covid_combined$Sentiment, epochs = 30, batch_size = 100, validation_data = list(covid_valid_dtm,covid_valid$Sentiment)
+)
+
+
+
+```
+
+
+
+
+```{R}
+new_pred_labels = as.numeric(model %>% predict(covid_test_dtm) %>% k_argmax())
+```
+
+
+```{R}
+CrossTable(new_pred_labels,covid_test$Sentiment, prop.chisq = FALSE, prop.t = FALSE, dnn = c('predicted','actual'))
+
+
+```
+
+Best model from this assignment: 
+
+Overall accuracy would be 6136/ 8232 = .745.
+
+Precision = TP/(TP+FP) recall= TP/(TP+FN)
+
+Negative : Precision = 2232/ (2232 + 409 + 257) = .77 , Recall = 2232 / (2232 + 594 + 255) = .724
+
+Positive : Precision =  2982 / (2982 + 594 + 377) = .754  , Recall = 2982 / (2982 + 409 + 204 )= .829
+
+Neutral : Precision = 922 / (922 + 255 + 204) = .667  , Recall = 922 / (922 + 257 + 377) = .592
+
+
+
+Naive Bayes model from Assignment 2:
+
+Overall accuracy would be 5683/ 8232 = 69%.
+
+Precision = TP/(TP+FP) recall= TP/(TP+FN)
+
+Negative : Recall = 2044/ (2044 + 627 + 410) = .663 , Precision = 2044 / (2044 +607 + 214) = .713
+
+Positive : Recall =  2576 / (2576 + 607 + 412) = .717  , Precision = 2576 / (2576 + 627 + 279 )= .740
+
+Neutral : Recall = 1063 / (1063 + 214 + 279) = .683  , Precision = 1063 / (1063 + 410 + 412) = .564
+
+
+This model has a higher accuracy value than the naive Bayes model from the previous assignment with .745 vs .69. This model performed better than the naive Bayes model in both precision and recall.
+
+
+
+
+Problem 2
+
+1. Explore the overall structure of the dataset using str() function. Get a summary of statistics from each variable
+
+
+```{R}
+bike <- read.csv("bike.csv")
+str(bike)
+summary(bike)
+
+```
+There are 10886 observations in the data.
+
+
+datetime: Categorical, ordinal variable
+
+season: Categorical, ordinal variable
+
+holiday: Categorical, nominal variable
+
+workingday: Categorical, nominal variable 
+
+weather: Categorical, ordinal variable
+
+temp: Continuous variable
+
+atemp: Continious variable
+
+humidity: Continuous variable
+
+windspeed: Continuous variable
+
+registered: Continuous variable
+
+count: Continous variable
+
+```{R}
+colSums(is.na(bike))
+
+
+
+```
+There appear to be no missing values in the dataset.
+
+
+```{R}
+hist(bike$count)
+
+
+```
+
+The histogram's shape is reverse J-shaped, and it has a right-skewed distribution.
+
+
+
+2. Remove registered and casual variables.
+
+```{R}
+new_bike <- subset(bike, select = -c(registered,casual))
+
+
+
+```
+
+
+3. Set count variable in the dataframe equal to square root of count and plot the distribution.
+
+
+```{R}
+new_bike$count <- sqrt(new_bike$count)
+
+hist(new_bike$count)
+
+```
+
+
+4. Convert datetime to "day of month", "year", "day of week", "month", and "hour" variables. 
+
+```{R}
+library(lubridate)
+new_bike$datetime <- as.POSIXlt(new_bike$datetime)
+dayofmonth = new_bike$datetime$mday
+year = new_bike$datetime$year
+dayofweek = new_bike$datetime$wday
+month = new_bike$datetime$mon
+hour = new_bike$datetime$hour
+
+
+
+```
+
+
+```{R}
+new_bike <- cbind(new_bike, dayofmonth,year,dayofweek,month,hour)
+
+
+```
+
+```{R}
+new_bike <- subset(new_bike, select = -datetime)
+
+
+```
+
+
+5. Convert variables month, day of week, hour, and season to their x and y coordinates using sin and cosine transformation. After transformation, make sure to remove the original variables.
+
+```{R}
+month_x <- cos(((2*pi) * new_bike$month) / max(new_bike$month))
+month_y <- sin(((2*pi) * new_bike$month)/ max(new_bike$month))
+
+dayofweek_x <- cos(((2*pi) * new_bike$dayofweek) / max(new_bike$dayofweek))
+dayofweek_y <- sin(((2*pi) * new_bike$dayofweek) / max(new_bike$dayofweek))
+
+hour_x <- cos(((2*pi) * new_bike$hour) / max(new_bike$hour))
+hour_y <- sin(((2*pi) * new_bike$hour)/ max(new_bike$hour))
+
+season_x <- cos(((2*pi) * new_bike$season) / max(new_bike$season))
+season_y <- sin(((2*pi) * new_bike$season)/ max(new_bike$season))
+
+new_bike$dayofmonth <- as.numeric(new_bike$dayofmonth)
+
+
+
+```
+
+
+```{R}
+new_bike <- cbind(new_bike, month_x,month_y, dayofweek_x,dayofweek_y,hour_x,hour_y,season_x,season_y)
+
+
+
+```
+
+
+```{R}
+new_bike <- subset(new_bike, select = -c(month,dayofweek,hour,season))
+
+
+
+```
+
+
+
+```{R}
+library(data.table)
+library(mltools)
+new_bike_dt <- as.data.table(new_bike)
+new_bike_dt$season_x <- factor(new_bike_dt$season_x)
+new_bike_dt$season_y <- factor(new_bike_dt$season_y)
+new_bike_dt$month_x <- factor(new_bike_dt$month_x)
+new_bike_dt$month_y <- factor(new_bike_dt$month_y)
+new_bike_dt$dayofweek_x <- factor(new_bike_dt$dayofweek_x)
+new_bike_dt$dayofweek_y <- factor(new_bike_dt$dayofweek_y)
+new_bike_dt$hour_x <- factor(new_bike_dt$hour_x)
+new_bike_dt$hour_y <- factor(new_bike_dt$hour_y)
+new_bike_dt$dayofmonth <- factor(new_bike_dt$dayofmonth)
+new_bike_dt$weather <- factor(new_bike_dt$weather)
+new_bike_dt$year <- factor(new_bike_dt$year)
+
+new_bike_hot <-one_hot(new_bike_dt, cols = c("season_x","season_y", "month_x", "month_y", "dayofmonth", "year","dayofweek_x","dayofweek_y", "hour_x","hour_y", "weather"), sparsifyNAs = FALSE, naCols =FALSE, dropCols =TRUE, dropUnusedLevels = TRUE)
+
+
+
+```
+
+7. Use set.seed(1) to set random seed
+
+
+```{R}
+
+set.seed(1)
+
+```
+
+
+
+8. Use Caret's createDataPartition method as follows to partition dataset into bikes_train and bikes_test (90% training and 10% testing)
+
+
+```{R}
+library(caret)
+inTrain = createDataPartition(new_bike_hot$count, p = 0.9, list = FALSE)
+bikes_train = new_bike_hot[inTrain,]
+new_bikes_test = new_bike_hot[-inTrain,]
+
+
+
+```
+
+9. Set seed and further divide the train dat into 90% training and 10% validation
+```{R}
+set.seed(1)
+
+second_bikes_train <- createDataPartition(bikes_train$count, p = .90, list = FALSE)
+
+second_bikes_train_set <- bikes_train[second_bikes_train,]
+second_bikes_valid <- bikes_train[-second_bikes_train,]
+
+
+
+
+```
+
+
+
+10. Scale the numeric attributes in the training data (except for the outcome variable, count). Use the column means and column stdev from the training data to scale both validation and test data. Do NOT scale dummy variables (Season, month, dayofmonth, hour, year, dayofweek, weather)
+
+
+
+```{R}
+numeric_cols = c("temp", "atemp", "humidity", "windspeed")
+
+second_bikes_train_set <- as.data.frame(second_bikes_train_set)
+new_bikes_test <- as.data.frame(new_bikes_test)
+second_bikes_valid <- as.data.frame(second_bikes_valid)
+
+col_means_train <- attr(scale(second_bikes_train_set[,numeric_cols]), "scaled:center")
+col_stddevs_train <- attr(scale(second_bikes_train_set[, numeric_cols]), "scaled:scale")
+
+
+second_bikes_train_set[numeric_cols] = scale(second_bikes_train_set[numeric_cols])
+new_bikes_test[numeric_cols] <- scale(second_bikes_train_set[numeric_cols], center = col_means_train, scale = col_stddevs_train)
+second_bikes_valid[numeric_cols] <- scale(second_bikes_train_set[numeric_cols], center = col_means_train, scale = col_stddevs_train)
+
+
+
+```
+
+
+11. Create an ANN to predict count from other attributes. Use at least 2 hidden layers. Use tfruns to tune hyper-parameters (number of nodes in each hidden layer, activation function in each hidden layer, batch_size, learning_rate, and number of epochs). Validate each moidel on the validation set.
+
+
+```{R}
+second_bikes_matrix <- as.matrix(second_bikes_train_set)
+second_bikes_valid_matrix <- as.matrix(second_bikes_valid)
+
+```
+
+
+```{R}
+bike_model = keras_model_sequential()
+
+bike_model %>%
+  layer_dense(units = 1000, activation = "relu", input_shape = 106)%>%
+  layer_dense(units = 400, activation = "relu",) %>%
+  layer_dense(units = 106, activation = "softmax")
+
+
+bike_model %>% compile(
+  optimizer = 'adam',
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('mse')
+)
+set.seed(1)
+
+bike_model %>% fit(
+  second_bikes_matrix, second_bikes_train_set$count, epochs = 30, batch_size = 100, validation_data = list(as.matrix(second_bikes_valid_matrix), second_bikes_valid$count)
+)
+
+
+
+
+```
+
+
+```{R}
+library(tfruns)
+
+bike_runs <- tuning_run("bike_tune.R",
+                   flags = list(
+                     nodes = c(64, 128, 392),
+                     learning_rate = c(0.01, 0.05, 0.001, 0.0001),
+                     batch_size= c(100, 200, 500, 1000),
+                     epochs = c(30,50,100),
+                     activation = c("relu", "sigmoid", "tanh")
+                   ),
+                   sample = 0.02
+)
+
+
+
+```
+```{R}
+bike_runs
+
+
+
+```
+Based on the runs, it appears that run number 3 had the best mean squared error on the validation data.
+
+
+```{R}
+
+view_run(bike_runs$run_dir[3])
+
+
+
+```
+The best model seems to overfit slightly.
+
+
+The validation_loss seems to roughly stop decreasing around 70 epochs.
+
+
+
+12. Measure the performance of the best model on the test set and compute its RMSE.
+
+
+```{R}
+bike_model = keras_model_sequential()
+
+bike_model %>%
+  layer_dense(units = 128, activation = "tanh", input_shape = 106)%>%
+  layer_dense(units = 128, activation = "tanh",) %>%
+  layer_dense(units = 106, activation = "softmax")
+
+
+bike_model %>% compile(
+  optimizer = optimizer_adam(lr = .001),
+  loss = 'sparse_categorical_crossentropy',
+  metrics = c('mse')
+)
+
+
+bike_model %>% fit(
+  second_bikes_matrix, second_bikes_train_set$count, epochs = 100, batch_size = 200, validation_data = list(as.matrix(second_bikes_valid_matrix), second_bikes_valid$count)
+)
+
+
+
+```
+
+```{R}
+
+predictions = bike_model %>% predict(as.matrix(new_bikes_test))
+
+predictions = (predictions)^2
+
+
+rmse = function(x,y){
+  return((mean((x - y)^2))^0.5)
+}
+
+rmse(predictions, new_bikes_test$count)
+
+
+
+```
+
+13. Use a simple or stepwise linear regression model to predict the count. Train and test your model on the same data used to train and test your best network model. Compare the RMSE of the linear model on the test data with the RMSE of the neural network model. How does your neural network model compare to a simple linear model?
+
+
+```{R}
+bike.lm = lm(second_bikes_train_set$count ~., data = second_bikes_train_set)
+
+predict_bike_test <-predict(bike.lm, new_bikes_test)
+RMSE_bike_test <- sqrt(mean((new_bikes_test$count- predict_bike_test)^2))
+RMSE_bike_test
+
+```
+The simple linear model performed better than my neural network model with the RMSE of the neural network = 13.86 and the RMSE of the linear model = 3.51.
+
+
+
+
+
+
+

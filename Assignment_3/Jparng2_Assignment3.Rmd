@@ -1,0 +1,842 @@
+---
+title: "Assignment 3"
+output: html_notebook
+---
+
+1. Load data into dataframe, inspect with "str" and "summary", and  find each type of variable and explain for categorical variables if it is nominal or ordinal.
+2. Convert missing values "?" to NAs
+```{r}
+adult <- read.csv("adult.data", header = FALSE, na.strings = " ?", stringsAsFactors = TRUE)
+names(adult) <- c("age","workclass","fnlwgt","education","education-num","marital-status","occupation","relationship","race","sex","capital-gain","capital-loss","hours-per-week","native-country","income")
+
+str(adult)
+summary(adult)
+```
+age: Numeric Variable
+
+workclass: Categorical Variable, Nominal
+
+fnlwgt: Numeric Variable
+
+education: Categorical Variable, Ordinal
+
+education-num: Numeric Variable 
+
+marital-status: Categorical Variable, Nominal
+
+occupation: Categorical Variable, Nominal
+
+relationship: Categorical variable, Nominal
+
+race: Categorical Variable, Nominal
+
+sex: Categorical Variable, Nominal
+
+capital-gain: Numeric Variable
+
+capital-loss: Numeric Variable
+
+hours-per-week: Numeric Variable
+
+native-country: Categorical Variable, Nominal
+
+income: Categorical Variable, Ordinal
+
+
+
+3. Set random seed, and split the data to train/test. Use 80% of samples for training and the remaining 20% for testing. 
+
+```{R}
+set.seed(5)
+adult_sample <- sample(32560, 26049)
+adult_train <- adult[adult_sample, ]
+adult_test <- adult[-adult_sample,]
+
+
+
+
+```
+
+
+4. Find which columns in the train and test set have missing values. Replace them with the mean (if numeric) or mode (if categorical). Remember to only input based on the mode or mean of the training data.
+
+```{R}
+
+calc_mode <- function(x){
+  unique_val <- na.omit(unique(x))
+  unique_tab <- tabulate(match(x, unique_val))
+  unique_val[which.max(unique_tab)]
+}
+
+adult_train$workclass[is.na(adult_train$workclass)] <- calc_mode(adult_train$workclass)
+adult_train$occupation[is.na(adult_train$occupation)] <- calc_mode(adult_train$occupation)
+adult_train$`native-country`[is.na(adult_train$`native-country`)] <- calc_mode(adult_train$`native-country`)
+
+
+adult_test$workclass[is.na(adult_test$workclass)] <- calc_mode(adult_train$workclass)
+adult_test$occupation[is.na(adult_test$occupation)] <- calc_mode(adult_train$occupation)
+adult_test$`native-country`[is.na(adult_test$`native-country`)] <- calc_mode(adult_train$`native-country`)
+colSums(is.na(adult_train))
+colSums(is.na(adult_test))
+
+```
+Training set : workclass(categorical), occupation (categorical), and native-country (categorical) have NAs
+Test set : workclass (categorical), occupation (categorical), and native-country (categorical) have NAs
+
+
+
+
+5. Use plots and statistic tests to find which variables in the dataset are associated with Income. Remove variables not associated with income.
+
+
+Numeric vs numeric = scatterplot/correlation test
+Categorical vs Categorical = crosstabs(chi-square test)/ mosaic plot
+categorical vs numeric = side-by-side boxplots/  2-sample t-test/ one-way anova
+
+
+```{R}
+boxplot(adult$age~adult$income, col="red")
+t.test(adult$age~adult$income, alternative = "two.sided")
+
+```
+
+There appears to be an association with age and income.
+
+```{R}
+workclass_table <- table(adult$workclass,adult$income)
+mosaicplot(workclass_table, xlab ="Work Class", ylab ="Income ($)", main ="Mosaic graph of Work class vs Income", shade=TRUE)
+chisq.test(workclass_table)
+
+```
+There appears to be an association with work class and income.
+
+
+
+```{R}
+boxplot(adult$fnlwgt~adult$income, col="red")
+oneway.test(adult$fnlwgt~adult$income, data = adult)
+
+
+```
+There does not appear to be an association between fnlwgt and income.
+
+
+```{R}
+education_table <- table(adult$education,adult$income)
+mosaicplot(education_table, xlab ="Education", ylab ="Income ($)", main ="Mosaic graph of Education vs Income", shade=TRUE)
+chisq.test(education_table)
+
+```
+There appears to be an association with education and income.
+
+
+```{R}
+boxplot(adult$`education-num`~adult$income, col="red")
+oneway.test(adult$`education-num`~adult$income, data = adult)
+
+
+
+```
+
+There appears to be an association between education-num and income.
+
+
+
+```{R}
+marital_table <- table(adult$`marital-status`,adult$income)
+mosaicplot(marital_table, xlab ="Marital Status", ylab ="Income ($)", main ="Mosaic graph of Marital Status vs Income", shade=TRUE)
+chisq.test(marital_table)
+
+
+```
+
+There appears to be an association between marital status and income.
+
+
+
+```{R}
+occupation_table <- table(adult$occupation,adult$income)
+mosaicplot(occupation_table, xlab ="Occupation", ylab ="Income ($)", main ="Mosaic graph of Occupation vs Income", shade=TRUE)
+chisq.test(occupation_table)
+
+
+```
+There appears to be an association between occupation and income.
+
+
+
+```{R}
+relationship_table <- table(adult$relationship,adult$income)
+mosaicplot(relationship_table, xlab ="Relationship", ylab ="Income ($)", main ="Mosaic graph of Relationship vs Income", shade=TRUE)
+chisq.test(relationship_table)
+
+
+```
+There appears to be an association between relationship and income.
+
+```{R}
+race_table <- table(adult$race,adult$income)
+mosaicplot(race_table, xlab ="Race", ylab ="Income ($)", main ="Mosaic graph of Race vs Income", shade=TRUE)
+chisq.test(race_table)
+
+
+
+```
+There appears to be an association between race and income.
+
+
+
+```{R}
+sex_table <- table(adult$sex,adult$income)
+mosaicplot(sex_table, xlab ="Sex", ylab ="Income ($)", main ="Mosaic graph of Sex vs Income", shade=TRUE)
+chisq.test(sex_table)
+
+
+```
+
+There appears to be an association between sex and income.
+
+
+
+```{R}
+boxplot(adult$`capital-gain`~adult$income, col="red")
+oneway.test(adult$`capital-gain`~adult$income, data = adult)
+
+
+```
+There appears to be an association betweeen capital-gain and income.
+
+
+
+```{R}
+boxplot(adult$`capital-loss`~adult$income, col="red")
+oneway.test(adult$`capital-loss`~adult$income, data = adult)
+
+
+```
+
+There appears to be an association between capital-loss and income.
+
+
+```{R}
+boxplot(adult$`hours-per-week`~adult$income, col="red")
+oneway.test(adult$`hours-per-week`~adult$income, data = adult)
+
+
+
+```
+
+There appears to be an association between hours-per-week and income.
+
+
+
+
+
+```{R}
+
+native_country_table <- table(adult$`native-country`,adult$income)
+mosaicplot(native_country_table, xlab ="Native Country", ylab ="Income ($)", main ="Mosaic graph of Native Country vs Income", shade=TRUE)
+chisq.test(native_country_table)
+
+```
+There appears to be an association between native country and income.
+
+Remove fnlwgt from the dataset
+```{R}
+new_adult_train <- subset(adult_train, select = -fnlwgt)
+new_adult_test <- subset(adult_test, select = -fnlwgt)
+
+```
+
+
+
+6. train a logistic regression model on the train data and use it to predict "income for test data.
+
+```{R}
+attach(new_adult_test)
+logistic_model <- glm(income~., data = new_adult_train, family = "binomial")
+summary(logistic_model)
+
+predictions = predict(logistic_model, new_adult_test, type = "response")
+head(predictions)
+predicted.label = factor(ifelse(predictions > 0.5, ">50K", "<=50K"))
+actual.label = income
+
+```
+
+
+7. Create a cross table between predicted and actual labels in the test data and compute total error, precision and recall.
+
+
+```{R}
+t = table(predicted.label, actual.label)
+t
+
+error = (t[1,2] + t[2,1])/sum(t)
+error
+
+
+
+```
+Precision for <=50k = (TP/ TP + FP) -> (4557 / (4557 + 655)) = .87
+Recall for <=50k = (TP / (TP+FN)) ->  (4557 / (4557 + 329)) = .93
+
+Precision for >50k = (TP/ TP + FP) -> (971 / (971 + 329)) = .74
+Recall for >50k = (TP / (TP + FN)) -> (971/ (971 + 655)) = .59
+
+
+8. Target "income" is unbalanced, divide training data to 2 sets (adults making <=50K and adults who make >50K). Take a sample size m from <=50K set. Combine above sample with >50K set. Re-train logistic regression model on the balanced training data and eval the test data. Compare total error, precision and recall for both classes with the previous model, which model is better at predicting each class?
+
+
+
+
+```{R}
+library(dplyr)
+split_greater_train <- subset(new_adult_train, income %in% c(" >50K"))
+split_less_train <- subset(new_adult_train, income %in% c(" <=50K"))
+
+split_less_train_sample <- sample_n(split_less_train, 6215)
+balanced_train <- rbind(split_greater_train,split_less_train_sample, deparse.level = 1)
+
+logistic_model_balanced <- glm(income~., data = balanced_train, family = "binomial")
+balance_predictions = predict(logistic_model_balanced, new_adult_test, type = "response")
+head(balance_predictions)
+predicted_balance.label = factor(ifelse(balance_predictions > 0.5, ">50K", "<=50K"))
+actual_balance.label = income
+
+
+
+t_bal = table(predicted_balance.label, actual_balance.label)
+t_bal
+
+error_bal = (t_bal[1,2] + t_bal[2,1])/sum(t_bal)
+error_bal
+
+```
+The total error is more on balanced model compared to the previous model.
+
+Precision for <=50K = (3918 / (3918 + 247)) = .94
+Recall for <=50K = (3918 / (3918 + 968)) = .80
+
+Precision for >50K = (1379 / (1379 + 968)) = .59
+Recall for >50K = (1379 / (1379 + 247)) = .85
+
+
+The balanced model had a better score for precision for <=50K and recall for >50K, while the previous model had a better score for precision for >50K and recall for <=50K.
+
+
+9. Train the data with C5.0 decision tree model and compare logistic regression model with boosted C5.0 model.
+
+```{R}
+library(C50)
+adult_train_boost <- C5.0(new_adult_train[-14], new_adult_train$income, trials = 30)
+
+adult_train_boost_pred <- predict(adult_train_boost, new_adult_test)
+
+library(gmodels)
+CrossTable(new_adult_test$income, adult_train_boost_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual income', 'predicted income'))
+
+```
+
+Total error -> (568 + 293)/ (6512) = .13
+
+Precision for <=50K -> (4593/(4593 + 293)) = .94
+Recall for <=50K -> (4593 / (4593 + 568)) = .89 
+
+Precision for >50K -> (1058 / (1058 + 548)) = .66
+Recall for >50K -> (1058/ 1058 + 293) = .78
+
+
+
+With the C5.0 decision tree model, the boosted tree model performed better than the linear regression model for the unbalanced data set in total error, precision for <=50K,and recall for >50K.
+
+
+
+```{R}
+balance_train_boost <- C5.0(balanced_train[-14], balanced_train$income, trials = 30)
+
+balance_train_boost_pred <- predict(balance_train_boost, new_adult_test)
+
+library(gmodels)
+CrossTable(new_adult_test$income, balance_train_boost_pred, prop.chisq = FALSE, prop.c = FALSE, prop.r = FALSE, dnn = c('actual income', 'predicted income'))
+
+
+```
+Total error -> (221 + 858) / 6512 = .17
+
+Precision for <=50K -> 4028 / (4028 + 858) = .82
+
+Recall for <=50K -> 4028 / (4028 + 221) = .94
+
+Precision for >50K -> 1405 / (1405 + 221) = .86
+
+Recall for >50K -> 1405 / (1405 + 858) = .62
+
+
+In terms of the balanced data, the total error score was a little less than the linear regression model. The recall score from <=50K and precision score for >50K from the decision tree were better than the linear regression model while linear regression model was better in the precision score for <=50K and recall for >50K.
+
+
+
+Problem 2:
+
+
+10. Read dataset into a dataframe, ensuring correct delimiter and set the "sep" option accordingly.
+
+```{R}
+student <- read.csv("student-mat.csv", sep = ";", stringsAsFactors = FALSE)
+
+
+```
+
+
+
+11. Explore dataset
+
+```{R}
+str(student)
+summary(student)
+
+colSums(is.na(student))
+
+```
+
+11.a There are no missing values in the dataset.
+
+```{R}
+attach(student)
+boxplot(G3~school, col="red")
+oneway.test(G3~school, data = student)
+
+
+
+```
+There does not appear to be an association with school and G3.
+
+
+```{R}
+boxplot(G3~sex, col="red")
+oneway.test(G3~sex, data = student)
+
+
+```
+There appears to be an association with G3 and sex.
+
+
+```{R}
+plot(x = G3, y = age, main = "Scatterplot of G3 vs. age", xlab = "G3", ylab = "age")
+cor.test(G3, age)
+```
+
+There appears to be an association with age and G3.
+
+
+
+```{R}
+boxplot(G3~address, col="red")
+oneway.test(G3~address, data = student)
+
+
+```
+There appears to be an association with address and G3.
+
+
+```{R}
+boxplot(G3~famsize, col="red")
+oneway.test(G3~famsize, data = student)
+
+
+```
+There does not appear to be an association with famsize and G3.
+
+
+
+```{R}
+boxplot(G3~Pstatus, col="red")
+oneway.test(G3~Pstatus, data = student)
+
+
+```
+There does not appear to be an association with Pstatus and G3.
+
+
+
+```{R}
+plot(x = G3, y = Medu, main = "Scatterplot of G3 vs. Medu", xlab = "G3", ylab = "Medu")
+cor.test(G3, Medu)
+
+
+
+```
+There appears to be an association between G3 and Medu.
+
+
+
+```{R}
+plot(x = G3, y = Fedu, main = "Scatterplot of G3 vs. Fedu", xlab = "G3", ylab = "Fedu")
+cor.test(G3, Fedu)
+
+
+```
+
+There appears to be an association between G3 and Fedu
+
+
+```{R}
+boxplot(G3~Mjob, col="red")
+oneway.test(G3~Mjob, data = student)
+
+
+```
+There appears to be an association between G3 and Mjob.
+
+
+
+```{R}
+boxplot(G3~Fjob, col="red")
+oneway.test(G3~Fjob, data = student)
+
+
+```
+There does not seem to be an association between Fjob and G3.
+
+
+```{R}
+
+boxplot(G3~reason, col="red")
+oneway.test(G3~reason, data = student)
+
+
+```
+
+There does not seem to be an association between reason and G3.
+
+
+
+```{R}
+boxplot(G3~guardian, col="red")
+oneway.test(G3~guardian, data = student)
+
+
+
+```
+There does not seem to be an association between guardian and G3.
+
+
+
+```{R}
+plot(x = G3, y = traveltime, main = "Scatterplot of G3 vs. travel time", xlab = "G3", ylab = "travel time")
+cor.test(G3, traveltime)
+
+
+
+```
+There appears to be an association between traveltime and G3.
+
+
+
+```{R}
+plot(x = G3, y = studytime, main = "Scatterplot of G3 vs. study time", xlab = "G3", ylab = "study time")
+cor.test(G3, studytime)
+
+
+```
+There does not appear to be an association between studytime and G3.
+
+```{R}
+plot(x = G3, y = failures, main = "Scatterplot of G3 vs. failures", xlab = "G3", ylab = "failures")
+cor.test(G3, failures)
+
+
+```
+There appears to be an association between failures and G3.
+
+
+
+```{R}
+boxplot(G3~schoolsup, col="red")
+oneway.test(G3~schoolsup, data = student)
+
+
+```
+There appears to be an association between schoolsup and G3.
+
+
+
+
+```{R}
+boxplot(G3~famsup, col="red")
+oneway.test(G3~famsup, data = student)
+
+
+```
+There does not seem to be an association between famsup and G3.
+
+
+```{R}
+ boxplot(G3~paid, col="red")
+oneway.test(G3~paid, data = student)
+
+
+
+```
+There appears to be an association between paid and G3.
+
+
+```{R}
+boxplot(G3~activities, col="red")
+oneway.test(G3~activities, data = student)
+
+
+
+```
+There does not seem to be an association between activities and G3.
+
+
+
+```{R}
+boxplot(G3~nursery, col="red")
+oneway.test(G3~nursery, data = student)
+
+
+
+```
+
+There does not appear to be an association between nursery and G3.
+
+
+
+
+```{R}
+
+boxplot(G3~higher, col="red")
+oneway.test(G3~higher, data = student)
+
+
+```
+There appears to be an association between higher and G3.
+
+
+```{R}
+
+boxplot(G3~internet, col="red")
+oneway.test(G3~internet, data = student)
+```
+There appears to be an association between internet and G3.
+
+```{R}
+boxplot(G3~romantic, col="red")
+oneway.test(G3~romantic, data = student)
+
+
+```
+There appears to be an association between romantic and G3.
+
+
+```{R}
+plot(x = G3, y = famrel, main = "Scatterplot of G3 vs. famrel", xlab = "G3", ylab = "age")
+cor.test(G3, famrel)
+
+
+```
+
+There does not seem to be an association between famrel and G3.
+
+
+
+```{R}
+plot(x = G3, y = freetime, main = "Scatterplot of G3 vs. free time", xlab = "G3", ylab = "free time")
+cor.test(G3, freetime)
+
+
+```
+There does not seem to be an association between freetime and G3.
+
+
+
+```{R}
+plot(x = G3, y = goout, main = "Scatterplot of G3 vs. go out", xlab = "G3", ylab = "free time")
+cor.test(G3, goout)
+
+
+```
+There appears to be an association between goout and G3.
+
+
+```{R}
+plot(x = G3, y = Dalc, main = "Scatterplot of G3 vs. Dalc", xlab = "G3", ylab = "Dalc")
+cor.test(G3, age)
+
+```
+There appears to be an association between Dalc and G3.
+
+
+```{R}
+
+plot(x = G3, y = Walc, main = "Scatterplot of G3 vs. Walc", xlab = "G3", ylab = "Walc")
+cor.test(G3, Walc)
+
+
+```
+
+There does not seem to be an association between Walc and G3.
+
+
+```{R}
+plot(x = G3, y = health, main = "Scatterplot of G3 vs. health", xlab = "G3", ylab = "health")
+cor.test(G3, health)
+
+
+```
+There does not seem to be an association between health and G3.
+
+
+```{R}
+plot(x = G3, y = absences, main = "Scatterplot of G3 vs. absences", xlab = "G3", ylab = "absences")
+cor.test(G3, absences)
+
+
+```
+
+There does not seem to be an association between absences and G3.
+
+
+```{R}
+plot(x = G3, y = G1, main = "Scatterplot of G3 vs. G1", xlab = "G3", ylab = "G1")
+cor.test(G3, G1)
+
+```
+There appears to be an association between G1 and G3.
+
+
+```{R}
+plot(x = G3, y = G2, main = "Scatterplot of G3 vs. G2", xlab = "G3", ylab = "G2")
+cor.test(G3, G2)
+
+
+```
+There appears to be an association between G2 and G3.
+
+
+```{R}
+hist(student$G3, main = "Histogram of G3", xlab = "G3")
+length(which(G3 > 8 & G3 < 11))
+
+```
+There are 84 student grades with G3 between 8 and 11. The histogram appears to have a right-skewed distribution.
+
+
+
+
+12. Split data to training (80%) and testing (20%)
+
+
+```{R}
+student_sample <- sample(395, 316)
+student_train <- student[student_sample, ]
+student_test <- student[-student_sample, ]
+
+
+```
+13. Set random seed: set.seed(123)
+
+
+```{R}
+set.seed(123)
+
+
+```
+
+
+14. use caret to run 10 fold cross validation using linear regression method on the train data set to predict "G3". Print resulting model to see cross validation RMSE. Take a summary of the model and interpret coefficients.
+
+```{R}
+library(caret)
+train.control = trainControl(method = "cv", number = 10)
+
+student_model = train(G3~., data = student_train, method = "lm", trControl = train.control)
+print(student_model)
+summary(student_model)
+
+```
+
+14. famrel, absences, G1 and G2 are statistically different from zero. This means that these true coefficient variables are statistically different from zero, and these variables may have a statistically significant effect on the outcome of G3.
+
+
+
+
+15. Compute RMSE of the model on the test data. Use predict function and pass the model and the test data, then compute RMSE of the predictions returned by the predict model.
+
+```{R}
+predict_student_test <- predict(student_model,student_test)
+
+RMSE_student_test <- sqrt(mean((student_test$G3- predict_student_test)^2))
+RMSE_student_test
+
+
+```
+
+Set random seed again
+
+16. Use caret/leap to run 10 fold cross validation with stepwise linear regresssion with backward selection on the train data.
+
+
+
+```{R}
+library(leaps)
+library(caret)
+set.seed(123)
+step_train.control = trainControl(method = "cv", number = 10)
+step.model <- train(G3~., data = student_train, method = "leapBackward", trControl = step_train.control, tuneGrid = data.frame(nvmax = 2:32))
+
+print(step.model)
+
+summary(step.model$finalModel)
+
+```
+
+The model with nvmax = 3 has the lowest cross validation RMSE.
+
+Variables famrel, absences, and G2 are selected in the model.
+
+
+
+17. Compute RMSE of stepwise model of the test data
+
+```{R}
+predict_step_student_test <- predict(step.model,student_test)
+
+RMSE_step_student_test <- sqrt(mean((student_test$G3- predict_step_student_test)^2))
+RMSE_step_student_test
+
+
+```
+
+
+18. Use "rpart" function to create a regression tree model from the train data. Get predictions on test data and compute RMSE.
+
+
+```{R}
+library(rpart)
+train.rpart <- rpart(G3~., data = student_train)
+
+predict_rpart <- predict(train.rpart, student_test)
+
+RMSE_rpart_student_test <- sqrt(mean((student_test$G3- predict_rpart)^2))
+RMSE_rpart_student_test
+
+
+```
+
+
+19. Compare the RMSE on the test data for linear, stepwise, and the regression tree.
+
+
+
+RMSE of linear regression : 2.20
+
+RMSE of stepwise regression: 1.89
+
+RMSE of regression tree: 2.09
+
+Based on these values, the stepwise regression model appears to be better at predicting students' final grade in math.
+
